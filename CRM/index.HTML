@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BizSuite Pro - Advanced ERP System</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+        .nav-link.active { background-color: #4f46e5; color: white; }
+        .health-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .health-good { background-color: #10b981; }
+        .health-warning { background-color: #f59e0b; }
+        .health-critical { background-color: #ef4444; }
+        .metric-card { position: relative; overflow: hidden; }
+        .metric-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #4f46e5, #7c3aed); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .modal { transition: opacity 0.25s ease; }
+        .modal-content { transition: transform 0.25s ease; }
+        #sidebar { transition: transform 0.3s ease-in-out; }
+        .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+        .badge-success { background-color: #d1fae5; color: #065f46; }
+        .badge-warning { background-color: #fef3c7; color: #92400e; }
+        .badge-danger { background-color: #fee2e2; color: #991b1b; }
+        .badge-info { background-color: #dbeafe; color: #1e3a8a; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            .print-area, .print-area * { visibility: visible; }
+            .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <div id="auth-container" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm">
+            <h2 class="text-2xl font-bold mb-2 text-center text-indigo-600">BizSuite Pro</h2>
+            <p class="text-center text-slate-500 mb-6 text-sm">Advanced ERP & Business Intelligence</p>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                    <input type="email" id="email" placeholder="test@example.com" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                    <input type="password" id="password" placeholder="password123" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="flex gap-4">
+                    <button type="button" id="login-btn" class="w-full py-2 bg-indigo-600 text-white rounded-md font-semibold hover:bg-indigo-700">Login</button>
+                    <button type="button" id="signup-btn" class="w-full py-2 bg-slate-600 text-white rounded-md font-semibold hover:bg-slate-700">Sign Up</button>
+                </div>
+                <button type="button" id="demo-btn" class="w-full py-2 mt-3 bg-green-600 text-white rounded-md font-semibold hover:bg-green-700">Demo Mode</button>
+                <p class="text-xs text-center text-slate-500 mt-4">Demo credentials: test@example.com / password123</p>
+                <div id="login-error" class="mt-4 p-3 bg-red-50 text-red-700 rounded text-sm hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-container" class="relative min-h-screen md:flex" style="display: none;">
+        <div id="mobile-menu-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden"></div>
+        <aside id="sidebar" class="w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white flex-shrink-0 fixed inset-y-0 left-0 z-30 transform -translate-x-full md:relative md:translate-x-0">
+            <div class="p-6 border-b border-slate-700">
+                <h1 class="text-2xl font-bold">BizSuite Pro</h1>
+                <p class="text-xs text-slate-400">v3.3 Enterprise</p>
+                <p class="text-xs text-slate-500 mt-2 truncate" id="user-email"></p>
+            </div>
+            <nav class="mt-6 flex-1 flex flex-col justify-between">
+                <div>
+                    <a href="#dashboard" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 rounded-md mx-2" data-page="dashboard"><i data-feather="bar-chart-2" class="w-5 h-5 mr-3"></i> Dashboard</a>
+                    <a href="#finance" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 rounded-md mx-2" data-page="finance"><i data-feather="dollar-sign" class="w-5 h-5 mr-3"></i> Finance</a>
+                    <a href="#inventory" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 rounded-md mx-2" data-page="inventory"><i data-feather="box" class="w-5 h-5 mr-3"></i> Inventory</a>
+                    <a href="#products" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 rounded-md mx-2" data-page="products"><i data-feather="package" class="w-5 h-5 mr-3"></i> Products</a>
+                    <a href="#customers" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 rounded-md mx-2" data-page="customers"><i data-feather="users" class="w-5 h-5 mr-3"></i> Customers</a>
+                    <a href="#branches" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 rounded-md mx-2" data-page="branches"><i data-feather="map-pin" class="w-5 h-5 mr-3"></i> Branches</a>
+                    <a href="#reports" class="nav-link flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 rounded-md mx-2" data-page="reports"><i data-feather="file-text" class="w-5 h-5 mr-3"></i> Reports</a>
+                </div>
+                <div class="p-4 border-t border-slate-700">
+                    <button id="logout-btn" class="w-full flex items-center px-4 py-2 text-slate-300 hover:bg-red-600 rounded-md"><i data-feather="log-out" class="w-5 h-5 mr-3"></i> Logout</button>
+                </div>
+            </nav>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <header class="md:hidden bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-10">
+                <div class="flex items-center justify-between p-4">
+                    <button id="mobile-menu-btn"><i data-feather="menu" class="w-6 h-6"></i></button>
+                    <h1 class="text-lg font-bold">BizSuite Pro</h1>
+                    <button id="notification-btn"><i data-feather="bell" class="w-6 h-6"></i></button>
+                </div>
+            </header>
+            
+            <main class="flex-1 overflow-y-auto p-4 md:p-8">
+                <div id="branch-selector-container" class="mb-6 bg-white p-4 rounded-lg shadow-md items-center gap-4 no-print" style="display: none;">
+                    <label for="branch-selector" class="font-bold text-slate-700">Managing Branch:</label>
+                    <select id="branch-selector" class="w-full md:w-auto mt-2 md:mt-0 p-2 border border-slate-300 rounded-md"></select>
+                </div>
+
+                <section id="page-dashboard" class="page-section"></section>
+                <section id="page-finance" class="page-section"></section>
+                <section id="page-inventory" class="page-section"></section>
+                <section id="page-products" class="page-section"></section>
+                <section id="page-customers" class="page-section"></section>
+                <section id="page-branches" class="page-section"></section>
+                <section id="page-reports" class="page-section"></section>
+            </main>
+        </div>
+    </div>
+    
+    <div id="product-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-40">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 class="text-xl font-bold mb-4" id="product-modal-title">Add Product</h3>
+            <form id="product-form" class="space-y-4">
+                <input type="hidden" id="product-id">
+                <input type="text" id="product-name" placeholder="Product Name" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <input type="text" id="product-sku" placeholder="SKU" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <input type="text" id="product-category" placeholder="Category" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <input type="number" id="product-quantity" placeholder="Quantity" value="0" min="0" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="product-price" placeholder="Sale Price" value="0" step="0.01" min="0" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500" title="The price you sell the product for.">
+                    <input type="number" id="product-cost" placeholder="Unit Cost" value="0" step="0.01" min="0" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500" title="The price you pay to acquire one unit.">
+                </div>
+                <textarea id="product-description" placeholder="Description" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500" rows="2"></textarea>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" class="px-4 py-2 bg-slate-200 rounded-md" id="cancel-product">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="customer-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-40">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 class="text-xl font-bold mb-4" id="customer-modal-title">Add Customer</h3>
+            <form id="customer-form" class="space-y-4">
+                <input type="hidden" id="customer-id">
+                <input type="text" id="customer-name" placeholder="Customer Name" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <input type="email" id="customer-email" placeholder="Email" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <input type="tel" id="customer-phone" placeholder="Phone" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <input type="text" id="customer-company" placeholder="Company" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <select id="customer-type" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                    <option value="individual">Individual</option>
+                    <option value="corporate">Corporate</option>
+                    <option value="wholesale">Wholesale</option>
+                    <option value="retail">Retail</option>
+                </select>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" class="px-4 py-2 bg-slate-200 rounded-md" id="cancel-customer">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="branch-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-40">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 class="text-xl font-bold mb-4" id="branch-modal-title">Add Branch</h3>
+            <form id="branch-form" class="space-y-4">
+                <input type="hidden" id="branch-id">
+                <input type="text" id="branch-name" placeholder="Branch Name" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <input type="text" id="branch-location" placeholder="Location/City" required class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <input type="email" id="branch-manager" placeholder="Manager Email" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <input type="tel" id="branch-phone" placeholder="Branch Phone" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                <select id="branch-status" class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                </select>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" class="px-4 py-2 bg-slate-200 rounded-md" id="cancel-branch">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="invoice-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden opacity-0 z-50">
+    <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 transform scale-95">
+        <h3 class="text-xl font-bold mb-4">Create Invoice</h3>
+        <form id="invoice-form">
+            <input type="hidden" id="invoice-customer-id">
+            <p class="mb-4"><strong>Customer:</strong> <span id="invoice-customer-name"></span></p>
+            
+            <div class="mb-4 p-4 bg-slate-50 rounded-lg">
+                <div class="flex gap-4 items-end">
+                    <div class="flex-1">
+                        <label class="text-sm font-medium">Add Product</label>
+                        <select id="invoice-product-select" class="w-full px-3 py-2 border border-slate-300 rounded-md mt-1"></select>
+                    </div>
+                    <button type="button" id="invoice-add-item-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md font-semibold hover:bg-indigo-700">Add</button>
+                </div>
+            </div>
+            
+            <div id="invoice-items-container" class="space-y-2 mb-4 max-h-60 overflow-y-auto p-1">
+            </div>
+            
+            <div class="text-right space-y-2 font-medium border-t pt-4 mt-4">
+                <p>Subtotal: <span id="invoice-subtotal">$0.00</span></p>
+                <p>Tax (10%): <span id="invoice-tax">$0.00</span></p>
+                <p class="text-xl font-bold">Total: <span id="invoice-total">$0.00</span></p>
+            </div>
+            
+            <div class="flex justify-end gap-4 mt-6">
+                <button type="button" class="px-4 py-2 bg-slate-200 rounded-md" onclick="closeModal('invoice-modal')">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md">Save & Generate Invoice</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="invoice-view-modal" class="modal fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden opacity-0 z-50">
+    <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col transform scale-95">
+        <div class="p-6 border-b flex justify-between items-center no-print">
+            <h3 class="text-xl font-bold">Invoice Details</h3>
+            <div>
+                <button onclick="printInvoice()" class="px-4 py-2 bg-blue-600 text-white rounded-md mr-2"><i data-feather="printer" class="w-4 h-4 inline-block mr-2"></i>Print</button>
+                <button onclick="downloadInvoicePDF()" class="px-4 py-2 bg-red-600 text-white rounded-md mr-2"><i data-feather="download" class="w-4 h-4 inline-block mr-2"></i>Download PDF</button>
+                <button onclick="closeModal('invoice-view-modal')" class="px-4 py-2 bg-slate-200 rounded-md">Close</button>
+            </div>
+        </div>
+        <div id="invoice-render-area" class="p-8 overflow-y-auto print-area">
+        </div>
+    </div>
+</div>
+    <div id="report-view-modal" class="modal fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 hidden opacity-0 z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b flex justify-between items-center no-print">
+                <h3 class="text-xl font-bold" id="report-title">Report</h3>
+                <div>
+                    <button id="export-csv-btn" class="px-4 py-2 bg-green-600 text-white rounded-md mr-2">Export CSV</button>
+                    <button id="export-pdf-btn" class="px-4 py-2 bg-red-600 text-white rounded-md mr-2">Export PDF</button>
+                    <button onclick="closeModal('report-view-modal')" class="px-4 py-2 bg-slate-200 rounded-md">Close</button>
+                </div>
+            </div>
+            <div id="report-render-area" class="p-8 overflow-y-auto print-area"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 translate-y-4 transition-all duration-300 z-50">
+        <span id="toast-message"></span>
+    </div>
+
+    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-[100] hidden">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script>
+    // Global state variables
+    let demoMode = false;
+    let currentUser = null;
+    let selectedBranchId = null;
+    let products = [], customers = [], branches = [], expenses = [], transactions = [], invoices = [];
+    let auth, db;
+    
+    // Chart instances
+    let stockChart, inventoryStatusChart, salesChart, customerChart, revenueChart, expenseChart;
+
+    const formatCurrency = (value) => '$' + (value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const LOW_STOCK_THRESHOLD = 5;
+
+    const showAuthError = (msg) => {
+        const errorDiv = document.getElementById('login-error');
+        errorDiv.textContent = msg;
+        errorDiv.classList.remove('hidden');
+        setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+    };
+
+    const enterDemoMode = () => {
+        demoMode = true;
+        currentUser = { email: 'demo@bizsuite.com', uid: 'demo-user-123' };
+        document.getElementById('user-email').textContent = 'Demo User (demo@bizsuite.com)';
+        document.getElementById('auth-container').style.display = 'none';
+        document.getElementById('app-container').style.display = 'flex';
+        
+        products = [
+            { id: '1', name: 'Laptop Pro', sku: 'LP001', category: 'Electronics', quantity: 15, price: 1299.99, cost: 850, description: 'High-performance laptop' },
+            { id: '2', name: 'Wireless Mouse', sku: 'WM002', category: 'Accessories', quantity: 45, price: 29.99, cost: 12.50, description: 'Ergonomic wireless mouse' },
+            { id: '3', name: 'USB-C Cable', sku: 'UC003', category: 'Cables', quantity: 2, price: 19.99, cost: 5, description: '2m USB-C charging cable' },
+            { id: '4', name: 'Monitor 4K', sku: 'MN004', category: 'Electronics', quantity: 8, price: 499.99, cost: 320, description: '27-inch 4K display' },
+            { id: '5', name: 'Keyboard Mechanical', sku: 'KB005', category: 'Accessories', quantity: 0, price: 159.99, cost: 95, description: 'RGB mechanical keyboard' }
+        ];
+        customers = [
+            { id: '1', name: 'John Smith', email: 'john@company.com', phone: '555-0101', company: 'Tech Corp', type: 'corporate' },
+            { id: '2', name: 'Sarah Johnson', email: 'sarah@store.com', phone: '555-0102', company: 'Retail Store', type: 'retail' }
+        ];
+        branches = [
+            { id: '1', name: 'Main Branch', location: 'New York', manager: 'james@branch.com', phone: '555-1000', status: 'active' }
+        ];
+        expenses = [
+            { id: 'e1', category: 'Salaries', amount: 8500, date: '2025-10-01' },
+            { id: 'e2', category: 'Marketing', amount: 2200, date: '2025-10-05' },
+            { id: 'e3', category: 'Rent', amount: 3000, date: '2025-10-02' },
+            { id: 'e4', category: 'Utilities', amount: 750, date: '2025-10-08' },
+        ];
+        invoices = [
+            { id: 'INV-1665512000000', customerId: '1', customerName: 'John Smith', date: '2025-10-11T18:13:20.000Z', items: [{ productId: '1', name: 'Laptop Pro', quantity: 1, price: 1299.99, total: 1299.99 }], subtotal: 1299.99, tax: 129.99, total: 1429.98 }
+        ];
+        
+        updateTransactions();
+        initPageContent();
+        navigateToPage('dashboard');
+        showToast('Demo Mode Activated - Sample Data Loaded', true);
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        feather.replace();
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyC_G11TjOUIP3WbXfYSBhmbpNSAvEp40w4",
+            authDomain: "aadithya-green-solar-erp.firebaseapp.com",
+            projectId: "aadithya-green-solar-erp",
+            storageBucket: "aadithya-green-solar-erp.firebasestorage.app",
+            messagingSenderId: "893314123871",
+            appId: "1:893314123871:web:3499648b274188751b73ea",
+            measurementId: "G-37HF7G1VCH"
+        };
+        
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            auth = firebase.auth();
+            db = firebase.firestore();
+        } catch (e) {
+            console.error("Firebase init error:", e);
+            showAuthError("Connection failed. You can use Demo Mode.");
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('user-email').textContent = user.email;
+                document.getElementById('auth-container').style.display = 'none';
+                document.getElementById('app-container').style.display = 'flex';
+                initPageContent();
+                initApp();
+            } else {
+                currentUser = null;
+                selectedBranchId = null;
+                if (!demoMode) {
+                    document.getElementById('auth-container').style.display = 'flex';
+                    document.getElementById('app-container').style.display = 'none';
+                }
+            }
+        });
+
+        document.getElementById('login-btn').addEventListener('click', handleLogin);
+        document.getElementById('signup-btn').addEventListener('click', handleSignup);
+        document.getElementById('demo-btn').addEventListener('click', enterDemoMode);
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            if (demoMode) {
+                window.location.reload();
+            } else if (auth) {
+                auth.signOut();
+            }
+        });
+        
+        document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('-translate-x-full');
+            document.getElementById('mobile-menu-backdrop').classList.remove('hidden');
+        });
+        document.getElementById('mobile-menu-backdrop').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+            document.getElementById('mobile-menu-backdrop').classList.add('hidden');
+        });
+
+        document.getElementById('product-form').addEventListener('submit', saveProduct);
+        document.getElementById('customer-form').addEventListener('submit', saveCustomer);
+        document.getElementById('branch-form').addEventListener('submit', saveBranch);
+        document.getElementById('invoice-form').addEventListener('submit', saveInvoice);
+        
+        document.getElementById('cancel-product').addEventListener('click', () => closeModal('product-modal'));
+        document.getElementById('cancel-customer').addEventListener('click', () => closeModal('customer-modal'));
+        document.getElementById('cancel-branch').addEventListener('click', () => closeModal('branch-modal'));
+        
+        document.getElementById('invoice-add-item-btn').addEventListener('click', addInvoiceItem);
+    });
+
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        if (!email || !password) return showAuthError("Please enter email and password.");
+        setLoadingState(true);
+        try {
+            await auth.signInWithEmailAndPassword(email, password);
+        } catch (error) {
+            showAuthError(error.message);
+        } finally {
+            setLoadingState(false);
+        }
+    };
+
+    const handleSignup = async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        if (!email || password.length < 6) return showAuthError("Please enter a valid email and a password of at least 6 characters.");
+        setLoadingState(true);
+        try {
+            await auth.createUserWithEmailAndPassword(email, password);
+        } catch (error) {
+            showAuthError(error.message);
+        } finally {
+            setLoadingState(false);
+        }
+    };
+    
+    const getCollection = (name) => {
+        if (name === 'branches') {
+            return db.collection('users').doc(currentUser.uid).collection('branches');
+        }
+        if (!selectedBranchId) {
+            console.error("No branch selected. Cannot get collection:", name);
+            return { get: () => Promise.resolve({ docs: [] }), onSnapshot: () => {}, add: () => {}, doc: () => ({ update: () => {}, delete: () => {} }) };
+        }
+        return db.collection('users').doc(currentUser.uid).collection('branches').doc(selectedBranchId).collection(name);
+    };
+    
+    const initApp = async () => {
+        if (demoMode) return;
+        setLoadingState(true);
+        if (!currentUser || !currentUser.uid) {
+            setLoadingState(false); return;
+        }
+        getCollection('branches').onSnapshot(async (snapshot) => {
+            branches = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderBranchSelector();
+            if (!selectedBranchId && branches.length > 0) {
+                selectedBranchId = branches[0].id;
+            }
+            if (selectedBranchId) {
+                await loadBranchData(selectedBranchId);
+                const currentPage = location.hash.substring(1) || 'dashboard';
+                navigateToPage(currentPage);
+            } else {
+                navigateToPage('branches');
+            }
+            setLoadingState(false);
+        }, err => {
+            console.error("Error fetching branches:", err);
+            showToast("Could not load your branches.", false);
+            setLoadingState(false);
+        });
+    };
+
+    const loadBranchData = async (branchId) => {
+        setLoadingState(true);
+        selectedBranchId = branchId;
+        const selector = document.getElementById('branch-selector');
+        if(selector) selector.value = branchId;
+        
+        const collectionsToLoad = ['products', 'customers', 'expenses', 'invoices'];
+        try {
+            const dataPromises = collectionsToLoad.map(name => getCollection(name).get());
+            const snapshots = await Promise.all(dataPromises);
+            snapshots.forEach((snapshot, index) => {
+                const collectionName = collectionsToLoad[index];
+                const dataArray = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                switch(collectionName) {
+                    case 'products': products = dataArray; break;
+                    case 'customers': customers = dataArray; break;
+                    case 'expenses': expenses = dataArray; break;
+                    case 'invoices': invoices = dataArray; break;
+                }
+            });
+            updateTransactions();
+            updateAllViews();
+        } catch (error) {
+            console.error(`Error loading data for branch ${branchId}:`, error);
+            showToast("Failed to load branch data.", false);
+        } finally {
+            setLoadingState(false);
+        }
+    };
+
+    const renderBranchSelector = () => {
+        const container = document.getElementById('branch-selector-container');
+        const selector = document.getElementById('branch-selector');
+        
+        if (branches.length > 0) {
+            container.style.display = 'flex';
+            selector.innerHTML = branches.map(b => `<option value="${b.id}">${b.name} (${b.location})</option>`).join('');
+            selector.value = selectedBranchId;
+            if (!selector.onchange) {
+                selector.onchange = (e) => {
+                    loadBranchData(e.target.value);
+                };
+            }
+        } else {
+            container.style.display = 'none';
+        }
+    };
+
+    const setLoadingState = (isLoading) => {
+        document.getElementById('loading-overlay').classList.toggle('hidden', !isLoading);
+    };
+
+    const saveProduct = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('product-id').value;
+        const productData = {
+            name: document.getElementById('product-name').value,
+            sku: document.getElementById('product-sku').value,
+            category: document.getElementById('product-category').value,
+            quantity: parseInt(document.getElementById('product-quantity').value) || 0,
+            price: parseFloat(document.getElementById('product-price').value) || 0,
+            cost: parseFloat(document.getElementById('product-cost').value) || 0,
+            description: document.getElementById('product-description').value,
+        };
+        setLoadingState(true);
+        try {
+            const collection = getCollection('products');
+            if (id) {
+                await collection.doc(id).update(productData);
+            } else {
+                await collection.add(productData);
+            }
+            await loadBranchData(selectedBranchId);
+        } catch (err) {
+            showToast('Failed to save product.', false);
+            console.error(err);
+        } finally {
+            setLoadingState(false);
+        }
+        closeModal('product-modal');
+        showToast(`Product ${id ? 'updated' : 'added'} successfully!`);
+    };
+
+    const saveCustomer = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('customer-id').value;
+        const customerData = {
+            name: document.getElementById('customer-name').value,
+            email: document.getElementById('customer-email').value,
+            phone: document.getElementById('customer-phone').value,
+            company: document.getElementById('customer-company').value,
+            type: document.getElementById('customer-type').value,
+        };
+        setLoadingState(true);
+        try {
+            const collection = getCollection('customers');
+            if (id) {
+                await collection.doc(id).update(customerData);
+            } else {
+                await collection.add(customerData);
+            }
+            await loadBranchData(selectedBranchId);
+        } catch (err) {
+            showToast('Failed to save customer.', false);
+            console.error(err);
+        } finally {
+            setLoadingState(false);
+        }
+        closeModal('customer-modal');
+        showToast(`Customer ${id ? 'updated' : 'added'} successfully!`);
+    };
+
+    const saveBranch = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('branch-id').value;
+        const branchData = {
+            name: document.getElementById('branch-name').value,
+            location: document.getElementById('branch-location').value,
+            manager: document.getElementById('branch-manager').value,
+            phone: document.getElementById('branch-phone').value,
+            status: document.getElementById('branch-status').value,
+        };
+        setLoadingState(true);
+        try {
+            const collection = getCollection('branches');
+            if (id) {
+                await collection.doc(id).update(branchData);
+            } else {
+                await collection.add(branchData);
+            }
+        } catch (err) {
+            showToast('Failed to save branch.', false);
+            console.error(err);
+        } finally {
+            setLoadingState(false);
+        }
+        closeModal('branch-modal');
+        showToast(`Branch ${id ? 'updated' : 'added'} successfully!`);
+    };
+    
+    const saveExpense = async (e) => {
+        e.preventDefault();
+        const expenseData = {
+            category: document.getElementById('expense-category').value,
+            amount: parseFloat(document.getElementById('expense-amount').value),
+            date: document.getElementById('expense-date').value || new Date().toISOString().split('T')[0],
+        };
+        if (!expenseData.category || !expenseData.amount) {
+            return showToast('Please provide category and amount.', false);
+        }
+        setLoadingState(true);
+        try {
+            await getCollection('expenses').add(expenseData);
+            await loadBranchData(selectedBranchId);
+        } catch (err) {
+            showToast('Failed to save expense.', false);
+            console.error(err);
+        } finally {
+            setLoadingState(false);
+        }
+        showToast('Expense added successfully!');
+        e.target.reset();
+    };
+
+    const deleteItem = async (id, collectionName) => {
+        if (!confirm('Are you sure you want to delete this item?')) return;
+        setLoadingState(true);
+        try {
+            if (collectionName === 'branches') {
+                await getCollection(collectionName).doc(id).delete();
+                selectedBranchId = null; 
+                await initApp();
+            } else {
+                await getCollection(collectionName).doc(id).delete();
+                await loadBranchData(selectedBranchId);
+            }
+        } catch (err) {
+            showToast(`Failed to delete item from ${collectionName}.`, false);
+            console.error(err);
+        } finally {
+            setLoadingState(false);
+        }
+        showToast('Item deleted successfully!');
+    };
+    
+    const initPageContent = () => {
+        document.getElementById('page-dashboard').innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="metric-card bg-white p-6 rounded-lg shadow-md"><h3 class="text-slate-500 text-sm font-medium">Total Revenue</h3><p id="metric-revenue" class="text-3xl font-bold mt-2">$0.00</p></div>
+                <div class="metric-card bg-white p-6 rounded-lg shadow-md"><h3 class="text-slate-500 text-sm font-medium">Total Profit</h3><p id="metric-profit" class="text-3xl font-bold mt-2">$0.00</p></div>
+                <div class="metric-card bg-white p-6 rounded-lg shadow-md"><h3 class="text-slate-500 text-sm font-medium">Total Customers</h3><p id="metric-customers" class="text-3xl font-bold mt-2">0</p></div>
+                <div class="metric-card bg-white p-6 rounded-lg shadow-md"><h3 class="text-slate-500 text-sm font-medium">Products in Stock</h3><p id="metric-products" class="text-3xl font-bold mt-2">0</p></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="font-bold mb-4">Revenue vs Expenses</h3><canvas id="revenueChart"></canvas></div>
+                <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="font-bold mb-4">Sales by Category</h3><canvas id="salesChart"></canvas></div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="font-bold mb-4">Low Stock Alerts (< ${LOW_STOCK_THRESHOLD} units)</h3><div id="dashboard-alerts" class="space-y-2"></div></div>
+        `;
+        document.getElementById('page-finance').innerHTML = `
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold mb-4">Transaction History</h2>
+                    <div id="transactions-list" class="overflow-auto max-h-[500px]"></div>
+                </div>
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                         <h2 class="text-xl font-bold mb-4">Add Expense</h2>
+                         <form id="expense-form" class="space-y-4">
+                             <input type="text" id="expense-category" placeholder="Category (e.g., Rent, Utilities)" required class="w-full px-3 py-2 border border-slate-300 rounded-md">
+                             <input type="number" id="expense-amount" placeholder="Amount" required min="0" step="0.01" class="w-full px-3 py-2 border border-slate-300 rounded-md">
+                             <input type="date" id="expense-date" class="w-full px-3 py-2 border border-slate-300 rounded-md">
+                             <button type="submit" class="w-full py-2 bg-indigo-600 text-white rounded-md font-semibold">Add Expense</button>
+                         </form>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-xl font-bold mb-4">Financial Summary</h2>
+                        <div class="space-y-2">
+                            <div class="flex justify-between"><span>Total Revenue:</span><strong id="finance-revenue" class="text-green-600">$0.00</strong></div>
+                            <div class="flex justify-between"><span>Total Expenses:</span><strong id="finance-expenses" class="text-red-600">$0.00</strong></div>
+                            <div class="flex justify-between border-t pt-2 mt-2"><span>Net Profit:</span><strong id="finance-profit" class="text-blue-600 text-lg">$0.00</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('page-inventory').innerHTML = `
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Inventory Management</h2>
+                <input type="text" id="inventory-search" placeholder="Search inventory..." class="px-4 py-2 border rounded-md">
+            </div>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div id="inventory-list-container" class="overflow-x-auto"></div>
+            </div>
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="font-bold mb-4">Stock Value by Category</h3><canvas id="stockChart"></canvas></div>
+                <div class="bg-white p-6 rounded-lg shadow-md"><h3 class="font-bold mb-4">Inventory Status</h3><canvas id="inventoryStatusChart"></canvas></div>
+            </div>
+        `;
+        document.getElementById('page-products').innerHTML = `
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Products</h2>
+                <div>
+                    <input type="text" id="product-search" placeholder="Search products..." class="px-4 py-2 border rounded-md mr-4">
+                    <button id="add-product-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md font-semibold">Add Product</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden"><div id="products-list-container" class="overflow-x-auto"></div></div>
+        `;
+        document.getElementById('page-customers').innerHTML = `
+             <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Customers</h2>
+                <div>
+                    <input type="text" id="customer-search" placeholder="Search customers..." class="px-4 py-2 border rounded-md mr-4">
+                    <button id="add-customer-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md font-semibold">Add Customer</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden"><div id="customers-list-container" class="overflow-x-auto"></div></div>
+            <div class="mt-8 bg-white p-6 rounded-lg shadow-md"><h3 class="font-bold mb-4">Customer Type Distribution</h3><canvas id="customerChart"></canvas></div>
+        `;
+        document.getElementById('page-branches').innerHTML = `
+             <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Branches</h2>
+                <div>
+                    <input type="text" id="branch-search" placeholder="Search branches..." class="px-4 py-2 border rounded-md mr-4">
+                    <button id="add-branch-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md font-semibold">Add Branch</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden"><div id="branches-list-container" class="overflow-x-auto"></div></div>
+        `;
+        document.getElementById('page-reports').innerHTML = `
+            <h2 class="text-2xl font-bold mb-6">Reports Center</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="font-bold text-lg mb-2">Sales Report</h3>
+                    <p class="text-slate-600 text-sm mb-4">Detailed breakdown of all sales invoices.</p>
+                    <button onclick="generateSalesReport()" class="w-full py-2 bg-blue-600 text-white rounded-md font-semibold">Generate Report</button>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="font-bold text-lg mb-2">Inventory Report</h3>
+                    <p class="text-slate-600 text-sm mb-4">Current stock levels, values, and status for all products.</p>
+                    <button onclick="generateInventoryReport()" class="w-full py-2 bg-blue-600 text-white rounded-md font-semibold">Generate Report</button>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="font-bold text-lg mb-2">Expense Report</h3>
+                    <p class="text-slate-600 text-sm mb-4">Summary of all business expenses by category.</p>
+                    <button onclick="generateExpenseReport()" class="w-full py-2 bg-blue-600 text-white rounded-md font-semibold">Generate Report</button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('expense-form')?.addEventListener('submit', saveExpense);
+        document.getElementById('add-product-btn')?.addEventListener('click', () => {
+            document.getElementById('product-form').reset();
+            document.getElementById('product-id').value = '';
+            document.getElementById('product-modal-title').textContent = 'Add Product';
+            openModal('product-modal');
+        });
+        document.getElementById('add-customer-btn')?.addEventListener('click', () => {
+            document.getElementById('customer-form').reset();
+            document.getElementById('customer-id').value = '';
+            document.getElementById('customer-modal-title').textContent = 'Add Customer';
+            openModal('customer-modal');
+        });
+        document.getElementById('add-branch-btn')?.addEventListener('click', () => {
+            document.getElementById('branch-form').reset();
+            document.getElementById('branch-id').value = '';
+            document.getElementById('branch-modal-title').textContent = 'Add Branch';
+            openModal('branch-modal');
+        });
+        document.getElementById('product-search')?.addEventListener('keyup', e => renderProductsList(products.filter(p => p.name.toLowerCase().includes(e.target.value.toLowerCase()))));
+        document.getElementById('customer-search')?.addEventListener('keyup', e => renderCustomersList(customers.filter(c => c.name.toLowerCase().includes(e.target.value.toLowerCase()))));
+        document.getElementById('branch-search')?.addEventListener('keyup', e => renderBranchesList(branches.filter(b => b.name.toLowerCase().includes(e.target.value.toLowerCase()))));
+        document.getElementById('inventory-search')?.addEventListener('keyup', e => renderInventoryList(products.filter(p => p.name.toLowerCase().includes(e.target.value.toLowerCase()))));
+        feather.replace();
+    }
+
+    const renderDashboard = () => {
+        const totalRevenue = invoices.reduce((sum, inv) => sum + inv.total, 0);
+        const totalCost = invoices.flatMap(inv => inv.items).reduce((sum, item) => {
+            const product = products.find(p => p.id === item.productId);
+            return sum + (product ? product.cost * item.quantity : 0);
+        }, 0);
+        const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+        const totalProfit = totalRevenue - totalCost - totalExpenses;
+        document.getElementById('metric-revenue').textContent = formatCurrency(totalRevenue);
+        document.getElementById('metric-profit').textContent = formatCurrency(totalProfit);
+        document.getElementById('metric-customers').textContent = customers.length;
+        document.getElementById('metric-products').textContent = products.reduce((sum, p) => sum + p.quantity, 0);
+        renderAlerts();
+        renderCharts();
+    };
+
+    const renderFinancePage = () => {
+        const totalRevenue = invoices.reduce((sum, inv) => sum + inv.total, 0);
+        const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+        const totalProfit = totalRevenue - totalExpenses;
+        document.getElementById('finance-revenue').textContent = formatCurrency(totalRevenue);
+        document.getElementById('finance-expenses').textContent = formatCurrency(totalExpenses);
+        document.getElementById('finance-profit').textContent = formatCurrency(totalProfit);
+        const listEl = document.getElementById('transactions-list');
+        if (!transactions.length) {
+            listEl.innerHTML = `<p class="text-slate-500 text-center py-4">No transactions yet.</p>`;
+            return;
+        }
+        listEl.innerHTML = `
+            <div class="space-y-3">
+            ${transactions.map(t => `
+                <div class="flex justify-between items-center p-3 rounded-lg ${t.type === 'sale' ? 'bg-green-50' : 'bg-red-50'}">
+                    <div>
+                        <p class="font-semibold">${t.description}</p>
+                        <p class="text-sm text-slate-500">${new Date(t.date).toLocaleDateString()}</p>
+                    </div>
+                    <span class="font-bold ${t.type === 'sale' ? 'text-green-700' : 'text-red-700'}">${t.amount > 0 ? '+' : ''}${formatCurrency(t.amount)}</span>
+                </div>
+            `).join('')}
+            </div>
+        `;
+    };
+
+    const renderProductsList = (list = products) => {
+        const container = document.getElementById('products-list-container');
+        if (!list.length) {
+            container.innerHTML = `<p class="text-slate-500 text-center p-8">No products found for this branch. Click 'Add Product' to begin.</p>`;
+            return;
+        }
+        container.innerHTML = `
+            <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-xs text-slate-700 uppercase"><tr>
+                    <th class="px-6 py-3">Product Name</th><th class="px-6 py-3">SKU</th><th class="px-6 py-3">Category</th>
+                    <th class="px-6 py-3 text-right">Price</th><th class="px-6 py-3 text-right">Cost</th><th class="px-6 py-3 text-right">Quantity</th>
+                    <th class="px-6 py-3 text-center">Actions</th>
+                </tr></thead>
+                <tbody>${list.map(p => `
+                    <tr class="bg-white border-b hover:bg-slate-50">
+                        <td class="px-6 py-4 font-medium">${p.name}</td><td class="px-6 py-4">${p.sku}</td><td class="px-6 py-4">${p.category}</td>
+                        <td class="px-6 py-4 text-right">${formatCurrency(p.price)}</td><td class="px-6 py-4 text-right">${formatCurrency(p.cost)}</td><td class="px-6 py-4 text-right">${p.quantity}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="editProduct('${p.id}')" class="font-medium text-indigo-600 hover:underline mr-4">Edit</button>
+                            <button onclick="deleteItem('${p.id}', 'products')" class="font-medium text-red-600 hover:underline">Delete</button>
+                        </td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        `;
+    };
+
+    const renderCustomersList = (list = customers) => {
+        const container = document.getElementById('customers-list-container');
+        if (!list.length) {
+            container.innerHTML = `<p class="text-slate-500 text-center p-8">No customers found for this branch. Click 'Add Customer' to begin.</p>`;
+            return;
+        }
+        container.innerHTML = `
+            <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-xs text-slate-700 uppercase"><tr>
+                    <th class="px-6 py-3">Name</th><th class="px-6 py-3">Email</th><th class="px-6 py-3">Phone</th><th class="px-6 py-3">Company</th>
+                    <th class="px-6 py-3">Type</th><th class="px-6 py-3 text-center">Actions</th>
+                </tr></thead>
+                <tbody>${list.map(c => `
+                    <tr class="bg-white border-b hover:bg-slate-50">
+                        <td class="px-6 py-4 font-medium">${c.name}</td><td class="px-6 py-4">${c.email}</td><td class="px-6 py-4">${c.phone}</td><td class="px-6 py-4">${c.company}</td>
+                        <td class="px-6 py-4 capitalize">${c.type}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="openInvoiceModal('${c.id}')" class="font-medium text-green-600 hover:underline mr-4">Invoice</button>
+                            <button onclick="editCustomer('${c.id}')" class="font-medium text-indigo-600 hover:underline mr-4">Edit</button>
+                            <button onclick="deleteItem('${c.id}', 'customers')" class="font-medium text-red-600 hover:underline">Delete</button>
+                        </td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        `;
+    };
+
+    const renderBranchesList = (list = branches) => {
+        const container = document.getElementById('branches-list-container');
+        if (!list.length) {
+            container.innerHTML = `<p class="text-slate-500 text-center p-8">You haven't created any branches yet. Click 'Add Branch' to begin.</p>`;
+            return;
+        }
+        container.innerHTML = `
+            <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-xs text-slate-700 uppercase"><tr>
+                    <th class="px-6 py-3">Branch Name</th><th class="px-6 py-3">Location</th><th class="px-6 py-3">Manager</th><th class="px-6 py-3">Phone</th>
+                    <th class="px-6 py-3">Status</th><th class="px-6 py-3 text-center">Actions</th>
+                </tr></thead>
+                <tbody>${list.map(b => `
+                    <tr class="bg-white border-b hover:bg-slate-50">
+                        <td class="px-6 py-4 font-medium">${b.name}</td><td class="px-6 py-4">${b.location}</td><td class="px-6 py-4">${b.manager}</td><td class="px-6 py-4">${b.phone}</td>
+                        <td class="px-6 py-4"><span class="badge ${b.status === 'active' ? 'badge-success' : 'badge-danger'} capitalize">${b.status}</span></td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="editBranch('${b.id}')" class="font-medium text-indigo-600 hover:underline mr-4">Edit</button>
+                            <button onclick="deleteItem('${b.id}', 'branches')" class="font-medium text-red-600 hover:underline">Delete</button>
+                        </td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+        `;
+    };
+
+    const renderInventoryList = (list = products) => {
+        const container = document.getElementById('inventory-list-container');
+        if (!list.length) {
+            container.innerHTML = `<p class="text-slate-500 text-center p-8">No items in inventory for this branch.</p>`;
+            return;
+        }
+        container.innerHTML = `
+            <table class="w-full text-sm text-left">
+                <thead class="bg-slate-50 text-xs text-slate-700 uppercase"><tr>
+                    <th class="px-6 py-3">Product Name</th><th class="px-6 py-3">Category</th><th class="px-6 py-3 text-right">Stock Quantity</th>
+                    <th class="px-6 py-3 text-right">Unit Cost</th><th class="px-6 py-3 text-right">Stock Value</th><th class="px-6 py-3 text-center">Status</th>
+                </tr></thead>
+                <tbody>${list.map(p => {
+                    const stockValue = p.cost * p.quantity;
+                    let statusBadge;
+                    if (p.quantity === 0) statusBadge = `<span class="badge badge-danger">Out of Stock</span>`;
+                    else if (p.quantity < LOW_STOCK_THRESHOLD) statusBadge = `<span class="badge badge-warning">Low Stock</span>`;
+                    else statusBadge = `<span class="badge badge-success">In Stock</span>`;
+                    return `
+                    <tr class="bg-white border-b hover:bg-slate-50">
+                        <td class="px-6 py-4 font-medium">${p.name}</td><td class="px-6 py-4">${p.category}</td><td class="px-6 py-4 text-right">${p.quantity}</td>
+                        <td class="px-6 py-4 text-right">${formatCurrency(p.cost)}</td><td class="px-6 py-4 text-right font-semibold">${formatCurrency(stockValue)}</td>
+                        <td class="px-6 py-4 text-center">${statusBadge}</td>
+                    </tr>`}).join('')}
+                </tbody>
+            </table>
+        `;
+    };
+    
+    const editProduct = (id) => {
+        const p = products.find(p => p.id === id);
+        if (!p) return;
+        document.getElementById('product-id').value = p.id;
+        document.getElementById('product-name').value = p.name;
+        document.getElementById('product-sku').value = p.sku;
+        document.getElementById('product-category').value = p.category;
+        document.getElementById('product-quantity').value = p.quantity;
+        document.getElementById('product-price').value = p.price;
+        document.getElementById('product-cost').value = p.cost;
+        document.getElementById('product-description').value = p.description;
+        document.getElementById('product-modal-title').textContent = 'Edit Product';
+        openModal('product-modal');
+    };
+    const editCustomer = (id) => {
+        const c = customers.find(c => c.id === id);
+        if (!c) return;
+        document.getElementById('customer-id').value = c.id;
+        document.getElementById('customer-name').value = c.name;
+        document.getElementById('customer-email').value = c.email;
+        document.getElementById('customer-phone').value = c.phone;
+        document.getElementById('customer-company').value = c.company;
+        document.getElementById('customer-type').value = c.type;
+        document.getElementById('customer-modal-title').textContent = 'Edit Customer';
+        openModal('customer-modal');
+    };
+    const editBranch = (id) => {
+        const b = branches.find(b => b.id === id);
+        if (!b) return;
+        document.getElementById('branch-id').value = b.id;
+        document.getElementById('branch-name').value = b.name;
+        document.getElementById('branch-location').value = b.location;
+        document.getElementById('branch-manager').value = b.manager;
+        document.getElementById('branch-phone').value = b.phone;
+        document.getElementById('branch-status').value = b.status;
+        document.getElementById('branch-modal-title').textContent = 'Edit Branch';
+        openModal('branch-modal');
+    };
+    
+    const updateTransactions = () => {
+        const salesTransactions = invoices.map(inv => ({
+            type: 'sale',
+            description: `Invoice ${inv.id}`,
+            amount: inv.total,
+            date: inv.date
+        }));
+        const expenseTransactions = expenses.map(exp => ({
+            type: 'expense',
+            description: exp.category,
+            amount: -exp.amount,
+            date: exp.date
+        }));
+        transactions = [...salesTransactions, ...expenseTransactions].sort((a,b) => new Date(b.date) - new Date(a.date));
+    };
+
+    const updateAllViews = () => {
+        const currentPage = document.querySelector('.page-section.active')?.id.replace('page-', '');
+        if (!currentPage) return;
+        switch(currentPage) {
+            case 'dashboard': renderDashboard(); break;
+            case 'finance': renderFinancePage(); break;
+            case 'inventory': renderInventoryList(); renderCharts(); break;
+            case 'products': renderProductsList(); break;
+            case 'customers': renderCustomersList(); renderCharts(); break;
+            case 'branches': renderBranchesList(); break;
+        }
+    };
+    
+    const renderAlerts = () => {
+        const alertsContainer = document.getElementById('dashboard-alerts');
+        if (!alertsContainer) return;
+        const lowStockProducts = products.filter(p => p.quantity > 0 && p.quantity < LOW_STOCK_THRESHOLD);
+        const outOfStockProducts = products.filter(p => p.quantity === 0);
+        let html = '';
+        if (lowStockProducts.length === 0 && outOfStockProducts.length === 0) {
+            html = `<div class="p-4 bg-green-50 text-green-700 rounded-lg flex items-center"><i data-feather="check-circle" class="w-5 h-5 mr-3"></i> All stock levels are healthy.</div>`;
+        } else {
+            outOfStockProducts.forEach(p => {
+                html += `<div class="p-4 bg-red-50 text-red-700 rounded-lg flex items-center justify-between"><span class="font-medium">${p.name} is out of stock.</span><a href="#inventory" data-page="inventory" class="nav-link text-sm font-semibold">View Inventory</a></div>`;
+            });
+            lowStockProducts.forEach(p => {
+                html += `<div class="p-4 bg-yellow-50 text-yellow-700 rounded-lg flex items-center justify-between"><span class="font-medium">${p.name} is low on stock (${p.quantity} units left).</span><a href="#inventory" data-page="inventory" class="nav-link text-sm font-semibold">View Inventory</a></div>`;
+            });
+        }
+        alertsContainer.innerHTML = html;
+        feather.replace();
+    };
+    
+    const renderCharts = () => {
+        const currentPage = document.querySelector('.page-section.active')?.id.replace('page-', '');
+        if (currentPage === 'dashboard') {
+            renderRevenueChart();
+            renderSalesChart();
+        } else if (currentPage === 'inventory') {
+            renderStockChart();
+            renderInventoryStatusChart();
+        } else if (currentPage === 'customers') {
+            renderCustomerChart();
+        }
+    };
+
+    const renderRevenueChart = () => {
+        const ctx = document.getElementById('revenueChart')?.getContext('2d');
+        if (!ctx) return;
+        const salesByMonth = invoices.reduce((acc, inv) => {
+            const month = new Date(inv.date).toLocaleString('default', { month: 'short' });
+            acc[month] = (acc[month] || 0) + inv.total;
+            return acc;
+        }, {});
+        const expensesByMonth = expenses.reduce((acc, exp) => {
+            const month = new Date(exp.date).toLocaleString('default', { month: 'short' });
+            acc[month] = (acc[month] || 0) + exp.amount;
+            return acc;
+        }, {});
+        const labels = [...new Set([...Object.keys(salesByMonth), ...Object.keys(expensesByMonth)])];
+        if (revenueChart) revenueChart.destroy();
+        revenueChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue',
+                    data: labels.map(l => salesByMonth[l] || 0),
+                    backgroundColor: 'rgba(79, 70, 229, 0.8)',
+                },{
+                    label: 'Expenses',
+                    data: labels.map(l => expensesByMonth[l] || 0),
+                    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                }]
+            }
+        });
+    };
+
+    const renderSalesChart = () => {
+        const ctx = document.getElementById('salesChart')?.getContext('2d');
+        if (!ctx) return;
+        const salesByCategory = products.reduce((acc, p) => {
+            if(p.category) acc[p.category] = 0;
+            return acc;
+        }, {});
+        invoices.flatMap(i => i.items).forEach(item => {
+            const product = products.find(p => p.id === item.productId);
+            if (product && product.category) salesByCategory[product.category] += item.total;
+        });
+        if (salesChart) salesChart.destroy();
+        salesChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(salesByCategory),
+                datasets: [{
+                    label: 'Sales by Category',
+                    data: Object.values(salesByCategory),
+                    backgroundColor: ['#4f46e5', '#7c3aed', '#10b981', '#f59e0b', '#3b82f6']
+                }]
+            }
+        });
+    };
+    
+    const renderStockChart = () => {
+        const ctx = document.getElementById('stockChart')?.getContext('2d');
+        if (!ctx) return;
+        const stockByCategory = products.reduce((acc, p) => {
+            if(p.category) acc[p.category] = (acc[p.category] || 0) + (p.cost * p.quantity);
+            return acc;
+        }, {});
+        if (stockChart) stockChart.destroy();
+        stockChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(stockByCategory),
+                datasets: [{
+                    label: 'Stock Value',
+                    data: Object.values(stockByCategory),
+                    backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#6b7280']
+                }]
+            }
+        });
+    };
+
+    const renderInventoryStatusChart = () => {
+        const ctx = document.getElementById('inventoryStatusChart')?.getContext('2d');
+        if (!ctx) return;
+        const statuses = {
+            'In Stock': products.filter(p => p.quantity >= LOW_STOCK_THRESHOLD).length,
+            'Low Stock': products.filter(p => p.quantity > 0 && p.quantity < LOW_STOCK_THRESHOLD).length,
+            'Out of Stock': products.filter(p => p.quantity === 0).length,
+        };
+        if (inventoryStatusChart) inventoryStatusChart.destroy();
+        inventoryStatusChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(statuses),
+                datasets: [{
+                    label: 'Number of Products',
+                    data: Object.values(statuses),
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                }]
+            },
+            options: { indexAxis: 'y' }
+        });
+    };
+    
+    const renderCustomerChart = () => {
+        const ctx = document.getElementById('customerChart')?.getContext('2d');
+        if (!ctx) return;
+        const types = customers.reduce((acc, c) => {
+            acc[c.type] = (acc[c.type] || 0) + 1;
+            return acc;
+        }, {});
+        if (customerChart) customerChart.destroy();
+        customerChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(types).map(t => t.charAt(0).toUpperCase() + t.slice(1)),
+                datasets: [{
+                    label: 'Customer Types',
+                    data: Object.values(types),
+                    backgroundColor: ['#4338ca', '#1d4ed8', '#047857', '#92400e']
+                }]
+            }
+        });
+    };
+    
+    const showPage = (page) => {
+        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(`page-${page}`).classList.add('active');
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.querySelector(`.nav-link[data-page="${page}"]`).classList.add('active');
+        if (location.hash !== `#${page}`) {
+            location.hash = page;
+        }
+        document.getElementById('sidebar').classList.add('-translate-x-full');
+        document.getElementById('mobile-menu-backdrop').classList.add('hidden');
+    };
+
+    const openModal = (id) => {
+        const modal = document.getElementById(id);
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.classList.remove('opacity-0'), 10);
+    };
+
+    const closeModal = (id) => {
+        const modal = document.getElementById(id);
+        modal.classList.add('opacity-0');
+        setTimeout(() => modal.classList.add('hidden'), 250);
+        const form = modal.querySelector('form');
+        if(form) form.reset();
+    };
+
+    const showToast = (msg, success = true) => {
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toast-message');
+        toastMsg.textContent = msg;
+        toast.className = `fixed bottom-5 right-5 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 translate-y-4 transition-all duration-300 z-50 ${success ? 'bg-slate-900' : 'bg-red-600'}`;
+        toast.classList.remove('opacity-0', 'translate-y-4');
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-4');
+        }, 3000);
+    };
+
+    const openInvoiceModal = (customerId) => {
+        const customer = customers.find(c => c.id === customerId);
+        if (!customer) return showToast('Customer not found.', false);
+        document.getElementById('invoice-customer-id').value = customerId;
+        document.getElementById('invoice-customer-name').textContent = customer.name;
+        const productSelect = document.getElementById('invoice-product-select');
+        productSelect.innerHTML = products
+            .filter(p => p.quantity > 0)
+            .map(p => `<option value="${p.id}">${p.name} - ${formatCurrency(p.price)} (Stock: ${p.quantity})</option>`).join('');
+        if (productSelect.innerHTML === '') {
+            productSelect.innerHTML = `<option disabled>No products in stock</option>`;
+        }
+        document.getElementById('invoice-items-container').innerHTML = '';
+        updateInvoiceTotals();
+        openModal('invoice-modal');
+    };
+
+    const addInvoiceItem = () => {
+        const productId = document.getElementById('invoice-product-select').value;
+        if(!productId) return showToast('No product selected or available.', false);
+        const product = products.find(p => p.id === productId);
+        if (!product) return;
+        const container = document.getElementById('invoice-items-container');
+        const existingItem = document.querySelector(`.invoice-item[data-product-id="${productId}"]`);
+        if (existingItem) {
+            const qtyInput = existingItem.querySelector('input[type="number"]');
+            const newQty = parseInt(qtyInput.value) + 1;
+            if (newQty > product.quantity) return showToast(`Not enough stock for ${product.name}.`, false);
+            qtyInput.value = newQty;
+        } else {
+            const itemHTML = `
+                <div class="invoice-item flex items-center gap-2 p-2 bg-slate-100 rounded" data-product-id="${productId}" data-price="${product.price}">
+                    <span class="flex-1">${product.name}</span>
+                    <span>${formatCurrency(product.price)} x </span>
+                    <input type="number" value="1" min="1" max="${product.quantity}" class="w-16 text-center border rounded">
+                    <button type="button" class="text-red-500 hover:text-red-700" onclick="this.parentElement.remove(); updateInvoiceTotals();">
+                        <i data-feather="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', itemHTML);
+            feather.replace();
+        }
+        updateInvoiceTotals();
+    };
+
+    document.body.addEventListener('change', (e) => {
+        const item = e.target.closest('.invoice-item');
+        if (item) {
+            const productId = item.dataset.productId;
+            const product = products.find(p => p.id === productId);
+            const qtyInput = item.querySelector('input');
+            if (parseInt(qtyInput.value) > product.quantity) {
+                qtyInput.value = product.quantity;
+                showToast(`Max stock for ${product.name} is ${product.quantity}.`, false);
+            }
+            if (parseInt(qtyInput.value) < 1) {
+                qtyInput.value = 1;
+            }
+            updateInvoiceTotals();
+        }
+    });
+
+    const updateInvoiceTotals = () => {
+        let subtotal = 0;
+        document.querySelectorAll('.invoice-item').forEach(item => {
+            const price = parseFloat(item.dataset.price);
+            const quantity = parseInt(item.querySelector('input').value);
+            subtotal += price * quantity;
+        });
+        const tax = subtotal * 0.10;
+        const total = subtotal + tax;
+        document.getElementById('invoice-subtotal').textContent = formatCurrency(subtotal);
+        document.getElementById('invoice-tax').textContent = formatCurrency(tax);
+        document.getElementById('invoice-total').textContent = formatCurrency(total);
+    };
+
+    const saveInvoice = async (e) => {
+        e.preventDefault();
+        const customerId = document.getElementById('invoice-customer-id').value;
+        const customer = customers.find(c => c.id === customerId);
+        const items = Array.from(document.querySelectorAll('.invoice-item')).map(item => {
+            const productId = item.dataset.productId;
+            const product = products.find(p => p.id === productId);
+            const quantity = parseInt(item.querySelector('input').value);
+            return {
+                productId, name: product.name, quantity,
+                price: product.price, total: product.price * quantity
+            };
+        });
+        if (items.length === 0) return showToast('Cannot create an empty invoice.', false);
+        const subtotal = items.reduce((sum, i) => sum + i.total, 0);
+        const tax = subtotal * 0.10;
+        const total = subtotal + tax;
+        const invoiceId = 'INV-' + Date.now();
+        const newInvoice = {
+            id: invoiceId, customerId, customerName: customer.name,
+            date: new Date().toISOString(), items, subtotal, tax, total,
+        };
+        setLoadingState(true);
+        try {
+            const batch = db.batch();
+            const invoiceRef = getCollection('invoices').doc(invoiceId);
+            batch.set(invoiceRef, newInvoice);
+            items.forEach(item => {
+                const productRef = getCollection('products').doc(item.productId);
+                const newQuantity = firebase.firestore.FieldValue.increment(-item.quantity);
+                batch.update(productRef, { quantity: newQuantity });
+            });
+            await batch.commit();
+            await loadBranchData(selectedBranchId);
+        } catch (err) {
+            showToast('Failed to save invoice and update stock.', false);
+            console.error(err);
+            setLoadingState(false);
+            return;
+        }
+        setLoadingState(false);
+        updateTransactions();
+        showToast('Invoice created successfully!');
+        closeModal('invoice-modal');
+        viewInvoice(invoiceId);
+    };
+
+    const viewInvoice = (invoiceId) => {
+        const invoice = invoices.find(inv => inv.id === invoiceId);
+        if (!invoice) return;
+        const renderArea = document.getElementById('invoice-render-area');
+        renderArea.innerHTML = `
+            <div class="flex justify-between items-start mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800">INVOICE</h1>
+                    <p class="text-slate-500">${invoice.id}</p>
+                    <p class="mt-2">Date: ${new Date(invoice.date).toLocaleDateString()}</p>
+                </div>
+                <div class="text-right">
+                    <h2 class="text-xl font-bold">BizSuite Pro</h2>
+                    <p>123 Main Street, Anytown</p>
+                </div>
+            </div>
+            <div class="mb-8">
+                <h3 class="font-semibold mb-2">Bill To:</h3>
+                <p>${invoice.customerName}</p>
+            </div>
+            <table class="w-full text-left mb-8">
+                <thead><tr class="bg-slate-200">
+                    <th class="p-3">Item</th><th class="p-3 text-center">Quantity</th>
+                    <th class="p-3 text-right">Unit Price</th><th class="p-3 text-right">Total</th>
+                </tr></thead>
+                <tbody>
+                    ${invoice.items.map(item => `
+                        <tr class="border-b">
+                            <td class="p-3">${item.name}</td>
+                            <td class="p-3 text-center">${item.quantity}</td>
+                            <td class="p-3 text-right">${formatCurrency(item.price)}</td>
+                            <td class="p-3 text-right">${formatCurrency(item.total)}</td>
+                        </tr>`).join('')}
+                </tbody>
+            </table>
+            <div class="flex justify-end">
+                <div class="w-full max-w-xs space-y-2">
+                    <div class="flex justify-between"><span class="text-slate-500">Subtotal:</span><span>${formatCurrency(invoice.subtotal)}</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Tax (10%):</span><span>${formatCurrency(invoice.tax)}</span></div>
+                    <div class="flex justify-between font-bold text-xl border-t pt-2 mt-2"><span >Total:</span><span>${formatCurrency(invoice.total)}</span></div>
+                </div>
+            </div>
+        `;
+        openModal('invoice-view-modal');
+    };
+
+    const printInvoice = () => window.print();
+    
+    const downloadInvoicePDF = () => {
+        const invoice = document.getElementById('invoice-render-area');
+        const invoiceId = invoice.querySelector('.text-slate-500').textContent;
+        const opt = {
+            margin: 10, filename: `${invoiceId}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().from(invoice).set(opt).save();
+    };
+    
+    const generateReportHTML = (title, headers, dataRows) => {
+        return `
+            <h1 class="text-2xl font-bold mb-4">${title}</h1>
+            <p class="text-sm text-slate-500 mb-6">Generated on: ${new Date().toLocaleString()}</p>
+            <table class="w-full text-sm text-left">
+                <thead class="bg-slate-100 text-xs text-slate-600 uppercase">
+                    <tr>${headers.map(h => `<th class="px-4 py-3">${h}</th>`).join('')}</tr>
+                </thead>
+                <tbody>${dataRows.map(row => `<tr class="border-b">${row.map(cell => `<td class="px-4 py-3">${cell}</td>`).join('')}</tr>`).join('')}</tbody>
+            </table>
+        `;
+    };
+    
+    const generateSalesReport = () => {
+        const title = 'Sales Report';
+        const headers = ['Invoice ID', 'Date', 'Customer', 'Items', 'Total'];
+        const dataRows = invoices.map(inv => [
+            inv.id, new Date(inv.date).toLocaleDateString(), inv.customerName,
+            inv.items.length, formatCurrency(inv.total)
+        ]);
+        const reportHTML = generateReportHTML(title, headers, dataRows);
+        document.getElementById('report-title').textContent = title;
+        document.getElementById('report-render-area').innerHTML = reportHTML;
+        document.getElementById('export-csv-btn').onclick = () => exportReportCSV(headers, dataRows, 'sales-report');
+        document.getElementById('export-pdf-btn').onclick = () => exportReportPDF('sales-report');
+        openModal('report-view-modal');
+    };
+    
+    const generateInventoryReport = () => {
+        const title = 'Inventory Report';
+        const headers = ['Product Name', 'SKU', 'Category', 'Quantity', 'Unit Cost', 'Stock Value'];
+        const dataRows = products.map(p => [
+            p.name, p.sku, p.category, p.quantity,
+            formatCurrency(p.cost), formatCurrency(p.cost * p.quantity)
+        ]);
+        const reportHTML = generateReportHTML(title, headers, dataRows);
+        document.getElementById('report-title').textContent = title;
+        document.getElementById('report-render-area').innerHTML = reportHTML;
+        document.getElementById('export-csv-btn').onclick = () => exportReportCSV(headers, dataRows, 'inventory-report');
+        document.getElementById('export-pdf-btn').onclick = () => exportReportPDF('inventory-report');
+        openModal('report-view-modal');
+    };
+    
+    const generateExpenseReport = () => {
+        const title = 'Expense Report';
+        const headers = ['Date', 'Category', 'Amount'];
+        const dataRows = [...expenses].sort((a,b) => new Date(b.date) - new Date(a.date)).map(exp => [
+            new Date(exp.date).toLocaleDateString(), exp.category, formatCurrency(exp.amount)
+        ]);
+        const reportHTML = generateReportHTML(title, headers, dataRows);
+        document.getElementById('report-title').textContent = title;
+        document.getElementById('report-render-area').innerHTML = reportHTML;
+        document.getElementById('export-csv-btn').onclick = () => exportReportCSV(headers, dataRows, 'expense-report');
+        document.getElementById('export-pdf-btn').onclick = () => exportReportPDF('expense-report');
+        openModal('report-view-modal');
+    };
+    
+    const exportReportCSV = (headers, data, filename) => {
+        const csvContent = "data:text/csv;charset=utf-8," 
+            + [headers.join(','), ...data.map(e => e.join(','))].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${filename}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        showToast('CSV export started.');
+    };
+
+    const exportReportPDF = (filename) => {
+        const reportArea = document.getElementById('report-render-area');
+        const opt = {
+            margin: 10, filename: `${filename}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().from(reportArea).set(opt).save();
+        showToast('PDF export started.');
+    };
+
+    const navigateToPage = (page) => {
+        showPage(page);
+        updateAllViews();
+    };
+
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            navigateToPage(link.dataset.page); 
+        });
+    });
+
+    window.addEventListener('hashchange', () => {
+        const page = location.hash.substring(1) || 'dashboard';
+        navigateToPage(page);
+    });
+
+    </script>
+</body>
+</html>
