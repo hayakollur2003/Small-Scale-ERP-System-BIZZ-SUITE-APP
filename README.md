@@ -139,7 +139,7 @@ Demo Email: test@example.com
 Demo Password: password123
 
 📄 License
-This project is distributed under the MIT License. See the LICENSE file for more information.
+This project is distributed under the **Apache License 2.0**. See the LICENSE file for more information.
 
 👨‍💻 Author
 Kolluru Hayagreeva (Haya)
